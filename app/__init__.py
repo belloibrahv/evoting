@@ -1,11 +1,8 @@
 """
 Application factory for TASFUED EVS.
-Follows the Flask application factory pattern so multiple instances
-(dev, test, prod) can coexist cleanly.
 """
 import os
 import logging
-from logging.handlers import RotatingFileHandler
 
 from flask import Flask, render_template
 from pythonjsonlogger import jsonlogger
@@ -39,7 +36,7 @@ def create_app(config_class=None) -> Flask:
 
     @login_manager.user_loader
     def load_user(user_id: str):
-        return User.query.get(int(user_id))
+        return db.session.get(User, int(user_id))
 
     # ── Blueprints ────────────────────────────────────────────────────────
     _register_blueprints(app)
@@ -53,10 +50,14 @@ def create_app(config_class=None) -> Flask:
     # ── Logging ───────────────────────────────────────────────────────────
     _configure_logging(app)
 
-    # ── DB + migrations (dev auto-create) ─────────────────────────────────
-    with app.app_context():
-        db.create_all()
-        _bootstrap_admin(app)
+    # ── DB setup: tests only (production uses scripts/init_db.py) ─────────
+    # In production/staging Gunicorn forks multiple workers — running
+    # create_all() or bootstrap inside the factory causes N concurrent
+    # workers to race on the same DB. The pre-start script handles this once.
+    if app.config.get("TESTING"):
+        with app.app_context():
+            db.create_all()
+            _bootstrap_admin(app)
 
     # ── Background scheduler (skip during testing) ────────────────────────
     if not app.config.get("TESTING"):
@@ -130,19 +131,15 @@ def _configure_logging(app: Flask) -> None:
 
 
 def _bootstrap_admin(app: Flask) -> None:
-    """
-    Ensure a default admin account exists for first-run.
-    Credentials are overridden in production via environment variables.
-    """
+    """Create the default admin account if it doesn't exist yet."""
     from app.models.user import User, Role
-    from app.extensions import bcrypt as _bcrypt
 
     admin_matric = app.config.get("ADMIN_MATRIC", "ADMIN001")
     if User.query.filter_by(matric_number=admin_matric).first():
-        return  # Already exists
+        return
 
     default_password = os.environ.get("ADMIN_DEFAULT_PASSWORD", "Admin@1234")
-    hashed = _bcrypt.generate_password_hash(
+    hashed = bcrypt.generate_password_hash(
         default_password,
         rounds=app.config.get("BCRYPT_LOG_ROUNDS", 12),
     ).decode("utf-8")
