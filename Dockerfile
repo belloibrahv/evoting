@@ -57,12 +57,5 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 EXPOSE 5000
 
-# Gunicorn: 4 workers, 2 threads each, 30s timeout
-CMD ["gunicorn", \
-     "--bind", "0.0.0.0:5000", \
-     "--workers", "4", \
-     "--threads", "2", \
-     "--timeout", "30", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "run:app"]
+# Run DB init script then start gunicorn (same as render.yaml)
+CMD ["bash", "scripts/start.sh"]
