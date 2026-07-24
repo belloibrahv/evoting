@@ -1,0 +1,76 @@
+version: "3.9"
+
+services:
+  # ── Flask application ────────────────────────────────────────────────────
+  web:
+    build: .
+    restart: unless-stopped
+    environment:
+      FLASK_ENV: production
+      SECRET_KEY: ${SECRET_KEY}
+      DATABASE_URL: postgresql+psycopg2://evs:${DB_PASSWORD}@db:5432/evoting_db
+      BCRYPT_LOG_ROUNDS: "12"
+      SESSION_IDLE_TIMEOUT: "1800"
+      RATELIMIT_STORAGE_URL: redis://redis:6379/0
+      ADMIN_MATRIC: ${ADMIN_MATRIC:-ADMIN001}
+      ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD}
+      LOG_LEVEL: INFO
+    ports:
+      - "5000:5000"
+    volumes:
+      - uploads:/app/app/static/uploads
+      - keys:/app/keys
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── PostgreSQL ────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: evs
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: evoting_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evs -d evoting_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis (rate limiting + optional caching) ─────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+
+  # ── Nginx reverse proxy ───────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - uploads:/app/app/static/uploads:ro
+    depends_on:
+      - web
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:
+  keys:

@@ -1,0 +1,163 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}{{ election.title }} — Admin{% endblock %}
+{% block admin_content %}
+
+<div class="animate-slide-up">
+
+  <!-- Breadcrumb + title -->
+  <div class="flex items-center gap-2 text-sm text-gray-400 mb-2">
+    <a href="{{ url_for('admin.dashboard') }}" class="hover:text-brand-600 transition-colors">Elections</a>
+    <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+    <span class="text-gray-600">{{ election.title }}</span>
+  </div>
+  <div class="flex items-start justify-between gap-4 flex-wrap mb-6">
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold
+          {% if election.status == 'open' %}bg-accent-100 text-accent-700
+          {% elif election.status == 'draft' %}bg-gray-100 text-gray-600
+          {% elif election.status == 'published' %}bg-purple-100 text-purple-700
+          {% else %}bg-amber-100 text-amber-700{% endif %}">
+          {{ election.status | upper }}
+        </span>
+      </div>
+      <h1 class="font-display font-bold text-2xl text-gray-900">{{ election.title }}</h1>
+      <p class="text-gray-400 text-sm mt-1">{{ election.start_at | format_datetime }} → {{ election.end_at | format_datetime }}</p>
+    </div>
+    {% if election.is_editable %}
+    <a href="{{ url_for('admin.edit_election', election_id=election.election_id) }}"
+       class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 hover:border-brand-300 hover:text-brand-600 rounded-xl transition-all">
+      <i data-lucide="edit-2" class="w-4 h-4"></i>Edit
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- Turnout card (live) -->
+  {% if election.status in ['open','closed','tallied','published'] %}
+  <div class="grid sm:grid-cols-3 gap-4 mb-6">
+    {% for label, value, icon, color in [
+      ("Registered Voters", election.voter_count, "users", "blue"),
+      ("Ballots Cast", election.voted_count, "check-square", "accent"),
+      ("Turnout", election.turnout_pct ~ "%", "percent", "purple")
+    ] %}
+    <div class="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+      <div class="flex items-center gap-3 mb-1">
+        <div class="w-8 h-8 rounded-lg bg-{{ color }}-100 flex items-center justify-center">
+          <i data-lucide="{{ icon }}" class="w-4 h-4 text-{{ color }}-600"></i>
+        </div>
+        <span class="text-sm text-gray-500">{{ label }}</span>
+      </div>
+      <p class="font-display font-bold text-2xl text-gray-900">{{ value }}</p>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Lifecycle transitions -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
+    <h2 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+      <i data-lucide="git-branch" class="w-4 h-4 text-gray-400"></i>
+      Lifecycle Controls
+    </h2>
+    <div class="flex flex-wrap gap-3">
+      {% for label, to_status, color, icon in [
+        ("Schedule", "scheduled", "blue", "calendar"),
+        ("Open Voting", "open", "accent", "play"),
+        ("Close Voting", "closed", "amber", "stop-circle"),
+        ("Run Tally", None, "purple", "calculator"),
+        ("Publish Results", "published", "emerald", "globe"),
+      ] %}
+      {% if to_status and election.status | lower != to_status %}
+        {% set from_ok = {
+          "scheduled": "draft",
+          "open": "scheduled",
+          "closed": "open",
+          "published": "tallied"
+        } %}
+        {% if from_ok.get(to_status) == election.status %}
+        <form method="post" action="{{ url_for('admin.transition_election', election_id=election.election_id) }}" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="to_status" value="{{ to_status }}" />
+          <button type="submit"
+            class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-{{ color }}-600 hover:bg-{{ color }}-700 rounded-xl transition-all shadow-sm">
+            <i data-lucide="{{ icon }}" class="w-4 h-4"></i>{{ label }}
+          </button>
+        </form>
+        {% endif %}
+      {% elif not to_status and election.status == 'closed' %}
+      <a href="{{ url_for('admin.tally', election_id=election.election_id) }}"
+         class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition-all shadow-sm">
+        <i data-lucide="calculator" class="w-4 h-4"></i>Run Tally
+      </a>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Positions & candidates -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold text-gray-900 flex items-center gap-2">
+        <i data-lucide="list" class="w-4 h-4 text-gray-400"></i>
+        Positions & Candidates
+      </h2>
+      {% if election.is_editable %}
+      <a href="{{ url_for('admin.add_candidate', election_id=election.election_id) }}"
+         class="flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors">
+        <i data-lucide="plus" class="w-4 h-4"></i>Add Candidate
+      </a>
+      {% endif %}
+    </div>
+    {% for position in election.positions %}
+    <div class="mb-4 last:mb-0">
+      <h3 class="text-sm font-semibold text-gray-700 mb-2">{{ position.title }}</h3>
+      <div class="grid gap-2">
+        {% for candidate in position.candidates %}
+        <div class="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-xl">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center">
+              <i data-lucide="user" class="w-4 h-4 text-brand-500"></i>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-gray-900">{{ candidate.full_name }}</p>
+              {% if candidate.matric_number %}<p class="text-xs text-gray-400 font-mono">{{ candidate.matric_number }}</p>{% endif %}
+            </div>
+          </div>
+          {% if election.is_editable %}
+          <form method="post" action="{{ url_for('admin.delete_candidate', candidate_id=candidate.candidate_id) }}"
+                onsubmit="return confirm('Remove {{ candidate.full_name }}?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit" class="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </form>
+          {% endif %}
+        </div>
+        {% else %}
+        <p class="text-xs text-gray-400 italic">No candidates yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Voter roster -->
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold text-gray-900 flex items-center gap-2">
+        <i data-lucide="users" class="w-4 h-4 text-gray-400"></i>
+        Voter Roster
+        <span class="ml-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs font-mono">{{ election.voter_count }}</span>
+      </h2>
+      <a href="{{ url_for('admin.import_voters', election_id=election.election_id) }}"
+         class="flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors">
+        <i data-lucide="upload" class="w-4 h-4"></i>Import CSV
+      </a>
+    </div>
+    <p class="text-sm text-gray-400">
+      {{ election.voted_count }} of {{ election.voter_count }} eligible voters have cast ballots.
+    </p>
+  </div>
+
+</div>
+{% endblock %}

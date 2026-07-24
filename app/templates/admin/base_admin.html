@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pt-16 flex">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-white border-r border-gray-100 fixed top-16 bottom-0 hidden lg:flex flex-col overflow-y-auto z-30">
+    <div class="p-6">
+      <div class="flex items-center gap-2 mb-8">
+        <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
+          <i data-lucide="layout-dashboard" class="w-4 h-4 text-white"></i>
+        </div>
+        <span class="font-display font-bold text-gray-900">Admin Console</span>
+      </div>
+
+      <nav class="space-y-1">
+        {% set nav_items = [
+          ("admin.dashboard", "layout-dashboard", "Dashboard", ""),
+          ("admin.create_election", "plus-circle", "New Election", ""),
+          ("admin.audit_log", "file-text", "Audit Log", ""),
+        ] %}
+        {% for endpoint, icon, label, _ in nav_items %}
+        <a href="{{ url_for(endpoint) }}"
+           class="flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl transition-all
+             {% if request.endpoint == endpoint %}bg-brand-50 text-brand-700{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900{% endif %}">
+          <i data-lucide="{{ icon }}" class="w-4 h-4"></i>
+          {{ label }}
+        </a>
+        {% endfor %}
+      </nav>
+    </div>
+
+    <div class="mt-auto p-6 border-t border-gray-100">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center">
+          <i data-lucide="user" class="w-4 h-4 text-brand-600"></i>
+        </div>
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-gray-900 truncate">{{ current_user.full_name }}</p>
+          <p class="text-xs text-gray-400">EC Administrator</p>
+        </div>
+      </div>
+      <form action="{{ url_for('auth.logout') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <button type="submit" class="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-all">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+          Log out
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <div class="flex-1 lg:ml-64 p-6 sm:p-8">
+    {% block admin_content %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,542 @@
+{% extends 'base.html' %}
+{% block title %}TASFUED Secure Electronic Voting System{% endblock %}
+
+{% block extra_head %}
+<!-- GSAP + ScrollTrigger -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<!-- AOS -->
+<link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
+<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  .hero-gradient {
+    background: radial-gradient(ellipse 80% 60% at 50% -10%, #c7d2fe 0%, transparent 60%),
+                radial-gradient(ellipse 40% 40% at 80% 80%, #a5f3fc 0%, transparent 50%),
+                #f8fafc;
+  }
+  .mesh-bg {
+    background-image: radial-gradient(circle at 1px 1px, #e0e7ff 1px, transparent 0);
+    background-size: 28px 28px;
+  }
+  .card-hover { transition: transform 200ms var(--ease-expo), box-shadow 200ms var(--ease-expo); }
+  .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(99,102,241,0.15); }
+  .stat-counter { font-variant-numeric: tabular-nums; }
+  .gradient-border {
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, #6366f1, #10b981) border-box;
+    border: 2px solid transparent;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ═══════════════════════════════════════════════════════════
+     §1  HERO
+════════════════════════════════════════════════════════════════ -->
+<section id="hero" class="hero-gradient min-h-screen flex flex-col items-center justify-center relative overflow-hidden pt-16">
+  <!-- Background mesh -->
+  <div class="absolute inset-0 mesh-bg opacity-40 pointer-events-none"></div>
+
+  <!-- Floating badge -->
+  <div id="hero-badge" class="opacity-0 mb-8 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-50 border border-brand-200 text-brand-700 text-xs font-semibold">
+    <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+    RSA-2048 Encrypted &bull; SHA-256 Verified &bull; Role-Based Access Control
+  </div>
+
+  <!-- Headline -->
+  <h1 id="hero-h1" class="opacity-0 font-display font-bold text-center text-gray-900 text-4xl sm:text-5xl lg:text-6xl xl:text-7xl leading-tight tracking-tight max-w-4xl px-4">
+    A Secure, Verifiable Way to
+    <span class="bg-gradient-to-r from-brand-600 to-accent-500 bg-clip-text text-transparent"> Choose Your Student Leaders</span>
+  </h1>
+
+  <!-- Sub-headline -->
+  <p id="hero-sub" class="opacity-0 mt-6 text-center text-gray-600 text-lg sm:text-xl max-w-2xl px-4 leading-relaxed">
+    TASFUED's cryptographically secure e-voting platform. Every ballot is encrypted before storage,
+    every result is verifiable, and your vote is always secret.
+  </p>
+
+  <!-- CTA buttons -->
+  <div id="hero-cta" class="opacity-0 mt-10 flex flex-col sm:flex-row gap-4 px-4">
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('voter.dashboard') if current_user.is_voter else url_for('admin.dashboard') }}"
+         class="flex items-center justify-center gap-2 px-8 py-3.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl shadow-lg shadow-brand-200 transition-all hover:scale-[1.02] active:scale-[0.98]">
+        <i data-lucide="vote" class="w-5 h-5"></i>
+        Go to Dashboard
+      </a>
+    {% else %}
+      <a href="{{ url_for('auth.register') }}"
+         class="flex items-center justify-center gap-2 px-8 py-3.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl shadow-lg shadow-brand-200 transition-all hover:scale-[1.02] active:scale-[0.98]">
+        <i data-lucide="vote" class="w-5 h-5"></i>
+        Register to Vote
+      </a>
+      <a href="#how-it-works"
+         class="flex items-center justify-center gap-2 px-8 py-3.5 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl border border-gray-200 shadow-sm transition-all hover:scale-[1.02]">
+        <i data-lucide="play-circle" class="w-5 h-5"></i>
+        How It Works
+      </a>
+    {% endif %}
+  </div>
+
+  <!-- Trust badges -->
+  <div id="hero-trust" class="opacity-0 mt-12 flex flex-wrap justify-center gap-6 px-4 text-sm text-gray-500">
+    <span class="flex items-center gap-1.5"><i data-lucide="lock" class="w-4 h-4 text-accent-500"></i>End-to-end encrypted</span>
+    <span class="flex items-center gap-1.5"><i data-lucide="fingerprint" class="w-4 h-4 text-accent-500"></i>One vote per voter</span>
+    <span class="flex items-center gap-1.5"><i data-lucide="file-check" class="w-4 h-4 text-accent-500"></i>Tamper-evident receipts</span>
+    <span class="flex items-center gap-1.5"><i data-lucide="bar-chart-3" class="w-4 h-4 text-accent-500"></i>Instant published results</span>
+  </div>
+
+  <!-- Scroll cue -->
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce opacity-60">
+    <span class="text-xs text-gray-400">Scroll to explore</span>
+    <i data-lucide="chevrons-down" class="w-5 h-5 text-gray-400"></i>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     §2  PROBLEM → SOLUTION
+════════════════════════════════════════════════════════════════ -->
+<section id="problem-solution" class="py-24 bg-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16" data-aos="fade-up">
+      <span class="inline-block px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-semibold border border-red-100 mb-4">The Problem</span>
+      <h2 class="font-display font-bold text-3xl sm:text-4xl text-gray-900">Student elections are still stuck in the past</h2>
+      <p class="mt-4 text-gray-500 max-w-2xl mx-auto">Manual paper-ballot elections at Nigerian universities are plagued by systemic failures that undermine democratic outcomes.</p>
+    </div>
+
+    <!-- Stats row -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-16">
+      {% for stat in [
+        {"value": "83", "suffix": "%", "label": "of surveyed institutions still use manual ballots", "color": "red"},
+        {"value": "47", "suffix": "%", "label": "of students report experiencing election irregularities", "color": "orange"},
+        {"value": "3×", "suffix": "", "label": "longer to declare results with paper vs. digital", "color": "amber"},
+        {"value": "100", "suffix": "%", "label": "ballot confidentiality guaranteed by RSA-2048", "color": "emerald"}
+      ] %}
+      <div class="bg-gray-50 rounded-2xl p-6 text-center card-hover" data-aos="fade-up" data-aos-delay="{{ loop.index0 * 80 }}">
+        <div class="font-display font-bold text-4xl text-{{ stat.color }}-600 stat-counter" data-target="{{ stat.value }}">0</div>
+        <div class="text-2xl font-bold text-{{ stat.color }}-600">{{ stat.suffix }}</div>
+        <p class="mt-2 text-sm text-gray-500 leading-snug">{{ stat.label }}</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Two-column narrative -->
+    <div class="grid md:grid-cols-2 gap-12 items-start">
+      <div data-aos="fade-right">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-50 text-red-700 text-xs font-semibold border border-red-100 mb-6">
+          <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> Manual Ballot Risks
+        </div>
+        <ul class="space-y-4">
+          {% for risk in [
+            ("ballot-stuffing and impersonation of registered voters", "user-x"),
+            ("physical ballot-box tampering during transit or storage", "package-x"),
+            ("human counting errors that reverse legitimate outcomes", "calculator"),
+            ("slow, opaque result declaration with no audit trail", "clock"),
+            ("no mechanism for voters to verify their vote was counted", "eye-off")
+          ] %}
+          <li class="flex gap-3">
+            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center mt-0.5">
+              <i data-lucide="{{ risk[1] }}" class="w-4 h-4 text-red-600"></i>
+            </div>
+            <p class="text-gray-600 leading-relaxed">{{ risk[0]|capitalize }}</p>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div data-aos="fade-left">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-100 mb-6">
+          <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> The Cryptographic Solution
+        </div>
+        <ul class="space-y-4">
+          {% for solution in [
+            ("matric-number identity verification ensures only registered students vote", "fingerprint"),
+            ("RSA-2048 OAEP encryption prevents anyone — including admins — from reading ballots", "lock"),
+            ("SHA-256 integrity hash detects any post-cast tampering instantly", "shield-check"),
+            ("atomic database transactions guarantee one-vote-per-voter with zero race conditions", "database"),
+            ("vote receipts let voters confirm their ballot was recorded without revealing content", "receipt")
+          ] %}
+          <li class="flex gap-3">
+            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center mt-0.5">
+              <i data-lucide="{{ solution[1] }}" class="w-4 h-4 text-emerald-600"></i>
+            </div>
+            <p class="text-gray-600 leading-relaxed">{{ solution[0]|capitalize }}</p>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     §3  HOW IT WORKS — 4-step timeline
+════════════════════════════════════════════════════════════════ -->
+<section id="how-it-works" class="py-24 bg-gray-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16" data-aos="fade-up">
+      <span class="inline-block px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-xs font-semibold border border-brand-100 mb-4">Process</span>
+      <h2 class="font-display font-bold text-3xl sm:text-4xl text-gray-900">Simple for voters. Cryptographically rigorous beneath.</h2>
+    </div>
+
+    <div class="grid md:grid-cols-4 gap-8">
+      {% set steps = [
+        {"num": "01", "icon": "user-plus", "title": "Register", "body": "Enter your matriculation number — verified against the Electoral Commission's official eligible-voter roster. Only enrolled TASFUED students can register.", "color": "brand"},
+        {"num": "02", "icon": "log-in", "title": "Authenticate", "body": "Log in with your matric number and password. Your session is secured with HttpOnly, Secure, SameSite cookies and expires after 30 minutes of inactivity.", "color": "purple"},
+        {"num": "03", "icon": "shield-check", "title": "Vote (Encrypted)", "body": "Select your candidates and confirm. Your choices are serialised to JSON, encrypted with RSA-2048 OAEP, and stored — the server never sees plaintext.", "color": "accent"},
+        {"num": "04", "icon": "file-check-2", "title": "Verify Receipt", "body": "Receive a unique receipt containing your ballot hash. You can verify your vote was included in the tally without ever revealing how you voted.", "color": "emerald"}
+      ] %}
+      {% for step in steps %}
+      <div class="relative" data-aos="fade-up" data-aos-delay="{{ loop.index0 * 100 }}">
+        <!-- Connector line (hidden on last step) -->
+        {% if not loop.last %}
+        <div class="hidden md:block absolute top-10 left-full w-full h-0.5 bg-gradient-to-r from-gray-200 to-transparent z-0 -translate-x-1/2"></div>
+        {% endif %}
+
+        <div class="relative z-10 bg-white rounded-2xl p-6 shadow-sm border border-gray-100 card-hover h-full">
+          <div class="flex items-start gap-4 mb-4">
+            <div class="flex-shrink-0 w-12 h-12 rounded-xl bg-{{ step.color }}-100 flex items-center justify-center">
+              <i data-lucide="{{ step.icon }}" class="w-6 h-6 text-{{ step.color }}-600"></i>
+            </div>
+            <span class="text-4xl font-display font-bold text-gray-100 leading-none mt-1">{{ step.num }}</span>
+          </div>
+          <h3 class="font-display font-bold text-xl text-gray-900 mb-2">{{ step.title }}</h3>
+          <p class="text-sm text-gray-500 leading-relaxed">{{ step.body }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     §4  SECURITY ARCHITECTURE
+════════════════════════════════════════════════════════════════ -->
+<section id="security" class="py-24 bg-gray-950 text-white relative overflow-hidden">
+  <!-- Background glow -->
+  <div class="absolute inset-0 pointer-events-none">
+    <div class="absolute top-0 left-1/4 w-96 h-96 bg-brand-600/10 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-0 right-1/4 w-96 h-96 bg-accent-500/10 rounded-full blur-3xl"></div>
+  </div>
+
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16" data-aos="fade-up">
+      <span class="inline-block px-3 py-1 rounded-full bg-brand-900/60 text-brand-300 text-xs font-semibold border border-brand-800 mb-4">Security Architecture</span>
+      <h2 class="font-display font-bold text-3xl sm:text-4xl text-white">Six layers of protection</h2>
+      <p class="mt-4 text-gray-400 max-w-2xl mx-auto">Every component validated in the research paper and implemented to industry standard.</p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% set controls = [
+        {"icon": "lock", "title": "RSA-2048 OAEP Encryption", "tech": "PyCryptodome", "body": "Every ballot is encrypted with the election's 2048-bit RSA public key using OAEP/SHA-256 padding before it ever touches the database. The private key is held only by the EC Admin and never stored in the application.", "color": "brand"},
+        {"icon": "shield-check", "title": "SHA-256 Integrity Hash", "tech": "hashlib", "body": "A SHA-256 hash over [voter_ref | election_id | timestamp | ciphertext] is recomputed at tally time. Any single-bit tampering with a ballot is detected and that ballot is flagged and excluded from the count.", "color": "accent"},
+        {"icon": "key", "title": "bcrypt Passwords", "tech": "work factor 12", "body": "Passwords are hashed using bcrypt with a cost factor of 12 — deliberately slow to defeat brute-force attacks. Each password gets a unique per-user salt. Plaintext passwords are never logged or returned by any API.", "color": "purple"},
+        {"icon": "users", "title": "Role-Based Access Control", "tech": "Flask-Login", "body": "Three roles: EC Admin (full control), Voter (ballot only), Results Viewer (read-only). Every route is guarded by a decorator; a voter can never reach an admin route, and vice versa.", "color": "orange"},
+        {"icon": "file-text", "title": "Append-Only Audit Trail", "tech": "PostgreSQL / SQLite", "body": "Every authentication attempt, vote cast, lifecycle transition, and admin action is written to an immutable audit log. No update or delete routes exist for audit_log — the table is append-only at the application layer.", "color": "teal"},
+        {"icon": "globe", "title": "HTTPS / TLS + CSRF", "tech": "Flask-WTF, Nginx", "body": "All traffic is served over TLS 1.2+. Every state-changing request carries a Flask-WTF CSRF token. Sessions use HttpOnly, Secure, SameSite=Lax cookies with a 30-minute idle timeout.", "color": "indigo"}
+      ] %}
+      {% for ctrl in controls %}
+      <div class="bg-gray-900/60 border border-gray-800 rounded-2xl p-6 card-hover group" data-aos="fade-up" data-aos-delay="{{ loop.index0 * 60 }}">
+        <div class="flex items-start gap-4 mb-4">
+          <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-{{ ctrl.color }}-500/10 flex items-center justify-center group-hover:bg-{{ ctrl.color }}-500/20 transition-colors">
+            <i data-lucide="{{ ctrl.icon }}" class="w-5 h-5 text-{{ ctrl.color }}-400"></i>
+          </div>
+          <div>
+            <h3 class="font-semibold text-white text-sm">{{ ctrl.title }}</h3>
+            <span class="text-xs text-gray-500 font-mono">{{ ctrl.tech }}</span>
+          </div>
+        </div>
+        <p class="text-sm text-gray-400 leading-relaxed">{{ ctrl.body }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     §5  FEATURES BENTO GRID
+════════════════════════════════════════════════════════════════ -->
+<section id="features" class="py-24 bg-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16" data-aos="fade-up">
+      <span class="inline-block px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-xs font-semibold border border-brand-100 mb-4">Features</span>
+      <h2 class="font-display font-bold text-3xl sm:text-4xl text-gray-900">Everything a fair election needs</h2>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {% for feature in [
+        {"icon": "bar-chart-3", "title": "Live Turnout Dashboard", "body": "Real-time vote counts (not content) visible to admins during an open election. Voters and public see only registered vs. voted counts.", "big": true},
+        {"icon": "zap", "title": "Instant Results", "body": "Once the EC Admin runs the tally and publishes, results appear immediately on the public results page with full breakdowns."},
+        {"icon": "shield", "title": "Tamper-Evident Ballots", "body": "SHA-256 hash recomputed at tally. Even a single-bit change in stored data is caught and excluded."},
+        {"icon": "receipt", "title": "Downloadable Vote Receipts", "body": "Every voter gets a receipt with receipt ID, timestamp, and ballot hash — proof your vote was counted, without revealing your choice."},
+        {"icon": "layout-dashboard", "title": "Full Admin Console", "body": "Create elections, manage candidates, import voter rosters via CSV, control lifecycle, and export audit logs — all from one dashboard.", "big": true},
+        {"icon": "download", "title": "PDF & CSV Exports", "body": "Export results as PDF or CSV. Export audit logs as CSV for compliance and record-keeping."}
+      ] %}
+      <div class="bg-gray-50 hover:bg-brand-50 rounded-2xl p-6 border border-gray-100 hover:border-brand-200 transition-all card-hover {% if feature.get('big') %}sm:col-span-2 lg:col-span-1{% endif %}"
+           data-aos="fade-up" data-aos-delay="{{ loop.index0 * 50 }}">
+        <div class="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center mb-4">
+          <i data-lucide="{{ feature.icon }}" class="w-5 h-5 text-brand-600"></i>
+        </div>
+        <h3 class="font-semibold text-gray-900 mb-2">{{ feature.title }}</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">{{ feature.body }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     §6  PUBLISHED RESULTS PREVIEW
+════════════════════════════════════════════════════════════════ -->
+<section id="results-preview" class="py-24 bg-gray-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12" data-aos="fade-up">
+      <span class="inline-block px-3 py-1 rounded-full bg-accent-500/10 text-accent-600 text-xs font-semibold border border-accent-500/20 mb-4">Live Results</span>
+      <h2 class="font-display font-bold text-3xl sm:text-4xl text-gray-900">Election Results</h2>
+      <p class="mt-3 text-gray-500">Published results appear here in real time once the Electoral Commission makes them public.</p>
+    </div>
+
+    {% if published_elections %}
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for election in published_elections %}
+        <a href="{{ url_for('results.election_results', election_id=election.election_id) }}"
+           class="bg-white rounded-2xl p-6 border border-gray-100 card-hover block group"
+           data-aos="fade-up">
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <span class="inline-block px-2 py-0.5 rounded-full bg-accent-100 text-accent-700 text-xs font-semibold">Published</span>
+              <h3 class="font-semibold text-gray-900 mt-2 group-hover:text-brand-600 transition-colors">{{ election.title }}</h3>
+            </div>
+            <i data-lucide="arrow-right" class="w-5 h-5 text-gray-300 group-hover:text-brand-500 transition-all group-hover:translate-x-1"></i>
+          </div>
+          <p class="text-sm text-gray-500">{{ election.voter_count }} registered voters &bull; {{ election.voted_count }} ballots cast</p>
+          <div class="mt-4 h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-brand-500 to-accent-500 rounded-full transition-all"
+                 style="width: {{ election.turnout_pct }}%"></div>
+          </div>
+          <p class="mt-1.5 text-xs text-gray-400">{{ election.turnout_pct }}% turnout</p>
+        </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-16 bg-white rounded-2xl border border-gray-100" data-aos="fade-up">
+        <div class="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
+          <i data-lucide="bar-chart-3" class="w-8 h-8 text-gray-300"></i>
+        </div>
+        <h3 class="font-semibold text-gray-500 mb-2">No results published yet</h3>
+        <p class="text-sm text-gray-400">Published election results will appear here once the Electoral Commission makes them public.</p>
+        <a href="{{ url_for('results.index') }}"
+           class="mt-6 inline-flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors">
+          <i data-lucide="external-link" class="w-4 h-4"></i>
+          View results page
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     §7  PROJECT TEAM
+════════════════════════════════════════════════════════════════ -->
+<section id="team" class="py-24 bg-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16" data-aos="fade-up">
+      <span class="inline-block px-3 py-1 rounded-full bg-purple-50 text-purple-700 text-xs font-semibold border border-purple-100 mb-4">Project Team</span>
+      <h2 class="font-display font-bold text-3xl sm:text-4xl text-gray-900">The people behind the system</h2>
+      <p class="mt-4 text-gray-500 max-w-xl mx-auto">
+        Department of Computer and Information Science, College of Science and Information Technology,
+        Tai Solarin Federal University of Education, Ijebu-Ode.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+
+      <!-- Supervisor card -->
+      <div class="gradient-border rounded-2xl p-1 card-hover" data-aos="fade-right">
+        <div class="bg-white rounded-[14px] p-8 flex flex-col items-center text-center h-full">
+          <div class="w-24 h-24 rounded-full bg-gradient-to-br from-brand-100 to-purple-100 flex items-center justify-center mb-5 overflow-hidden ring-4 ring-white shadow-lg">
+            <i data-lucide="user-circle-2" class="w-14 h-14 text-brand-400"></i>
+          </div>
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-xs font-semibold mb-3">
+            <i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i>
+            Project Supervisor
+          </div>
+          <h3 class="font-display font-bold text-xl text-gray-900">Dr. Ogunbanwo</h3>
+          <p class="text-sm text-gray-500 mt-1">Lecturer, Department of Computer &amp; Information Science</p>
+          <p class="text-xs text-gray-400 mt-2">College of Science &amp; Information Technology</p>
+          <p class="text-xs text-gray-400">Tai Solarin Federal University of Education</p>
+        </div>
+      </div>
+
+      <!-- Student Researcher card -->
+      <div class="gradient-border rounded-2xl p-1 card-hover" data-aos="fade-left">
+        <div class="bg-white rounded-[14px] p-8 flex flex-col items-center text-center h-full">
+          <div class="w-24 h-24 rounded-full bg-gradient-to-br from-accent-100 to-teal-100 flex items-center justify-center mb-5 overflow-hidden ring-4 ring-white shadow-lg">
+            <i data-lucide="user-circle-2" class="w-14 h-14 text-accent-500"></i>
+          </div>
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent-50 text-accent-700 text-xs font-semibold mb-3">
+            <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
+            Student Researcher
+          </div>
+          <h3 class="font-display font-bold text-xl text-gray-900">Alabi Kayode Emmanuel</h3>
+          <p class="text-sm text-gray-500 mt-1">B.Sc. Computer Science</p>
+          <div class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-100">
+            <i data-lucide="hash" class="w-3.5 h-3.5 text-gray-400"></i>
+            <span class="font-mono text-sm text-gray-600 font-medium">20220204224</span>
+          </div>
+          <p class="text-xs text-gray-400 mt-3">
+            "Design and Implementation of a Secure Electronic Voting System<br/>
+            Using Cryptographic Techniques for Student Union Elections"
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Institution banner -->
+    <div class="mt-12 bg-gradient-to-r from-brand-600 to-brand-800 rounded-2xl p-8 text-center" data-aos="fade-up">
+      <h3 class="font-display font-bold text-white text-xl mb-2">Tai Solarin Federal University of Education</h3>
+      <p class="text-brand-200 text-sm">Ijebu-Ode, Ogun State, Nigeria</p>
+      <p class="text-brand-300 text-sm mt-1">
+        Department of Computer and Information Science &bull;
+        College of Science and Information Technology &bull;
+        May 2026
+      </p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     §8  FAQ
+════════════════════════════════════════════════════════════════ -->
+<section id="faq" class="py-24 bg-gray-50">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16" data-aos="fade-up">
+      <span class="inline-block px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-xs font-semibold border border-brand-100 mb-4">FAQ</span>
+      <h2 class="font-display font-bold text-3xl sm:text-4xl text-gray-900">Common questions</h2>
+    </div>
+
+    <div class="space-y-3" x-data="{active: null}">
+      {% set faqs = [
+        ("Is my vote really secret?", "Yes. Your ballot selections are serialised to JSON and encrypted with the election's RSA-2048 public key before the server even writes to the database. The private key is held only by the Electoral Commission administrator and is never stored in the application. Even if the database were compromised, an attacker would see only encrypted ciphertext."),
+        ("How does the system prevent me from voting twice?", "Before your ballot is encrypted and stored, the server checks your matric number against the eligible_voters table for this election. If has_voted is already True, your submission is rejected with a clear message. The has_voted flag is set atomically in the same database transaction as the ballot insert, so there is no race condition — even under concurrent load."),
+        ("What if I lose my internet connection mid-vote?", "Your vote is only counted once the server returns a receipt. If you lose connection before the submit request completes, no ballot is stored. You can return to the ballot page — it will still be available as long as you have not yet received a receipt. The submit button is disabled after the first click to prevent duplicate submissions."),
+        ("What is a vote receipt and what can I do with it?", "After a successful vote, you receive a receipt containing a unique receipt ID, the timestamp, and a SHA-256 hash of your ballot. You can download this as a PDF. The hash allows you — or an independent auditor — to confirm your ballot was included in the tally, without revealing your choices. The receipt never contains your vote content."),
+        ("Who can see the results?", "During an open election, only the EC Admin can see turnout statistics (number voted vs. registered) — no vote content is ever exposed. After the election closes and the Admin runs the tally and explicitly publishes results, they become visible on the public Results page and the Homepage. Nobody can see results before they are published."),
+        ("What happens if a ballot hash fails verification at tally time?", "Any ballot whose SHA-256 integrity hash does not match the recomputed value is excluded from the vote count. The mismatch is flagged in the audit trail for investigation. This ensures that any tampering with stored ballot data is detected and does not affect the valid count."),
+        ("How do I register to vote?", "Go to the Register page and enter your matriculation number, full name, email, and a password that meets the complexity requirements. Registration succeeds only if your matric number is on the Electoral Commission's eligible-voter roster — uploaded by the admin before the election opens. If you are not on the roster, contact the EC.")
+      ] %}
+      {% for q, a in faqs %}
+      <div class="bg-white rounded-xl border border-gray-100 overflow-hidden" data-aos="fade-up">
+        <button
+          @click="active === {{ loop.index }} ? active = null : active = {{ loop.index }}"
+          class="w-full flex items-center justify-between gap-4 px-6 py-4 text-left hover:bg-gray-50 transition-colors"
+          :aria-expanded="active === {{ loop.index }}">
+          <span class="font-medium text-gray-900 text-sm">{{ q }}</span>
+          <i data-lucide="chevron-down"
+             class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200"
+             :class="active === {{ loop.index }} ? 'rotate-180' : ''"></i>
+        </button>
+        <div x-show="active === {{ loop.index }}"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 -translate-y-2"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-end="opacity-0">
+          <div class="px-6 pb-5 pt-0 text-sm text-gray-500 leading-relaxed border-t border-gray-50">
+            <div class="pt-4">{{ a }}</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     §9  BOTTOM CTA
+════════════════════════════════════════════════════════════════ -->
+<section class="py-20 bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900 text-white">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center" data-aos="fade-up">
+    <i data-lucide="shield-check" class="w-12 h-12 mx-auto text-brand-300 mb-6"></i>
+    <h2 class="font-display font-bold text-3xl sm:text-4xl mb-4">Your voice deserves to be heard — securely.</h2>
+    <p class="text-brand-200 text-lg mb-10 max-w-xl mx-auto">Register with your TASFUED matriculation number and cast your ballot with confidence.</p>
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+      <a href="{{ url_for('auth.register') }}"
+         class="flex items-center justify-center gap-2 px-8 py-3.5 bg-white hover:bg-gray-50 text-brand-700 font-bold rounded-xl transition-all hover:scale-[1.02] shadow-xl">
+        <i data-lucide="user-plus" class="w-5 h-5"></i>
+        Register to Vote
+      </a>
+      <a href="{{ url_for('auth.login') }}"
+         class="flex items-center justify-center gap-2 px-8 py-3.5 bg-brand-500/30 hover:bg-brand-500/50 text-white font-semibold rounded-xl border border-white/20 transition-all">
+        <i data-lucide="log-in" class="w-5 h-5"></i>
+        Already registered? Log In
+      </a>
+    </div>
+  </div>
+</section>
+
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ── GSAP hero entrance ────────────────────────────────────────────────────
+gsap.registerPlugin(ScrollTrigger);
+
+const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+if (!prefersReduced) {
+  const tl = gsap.timeline({ defaults: { ease: 'power4.out' } });
+  tl.to('#hero-badge',  { opacity: 1, y: 0, duration: 0.6, delay: 0.2 })
+    .to('#hero-h1',     { opacity: 1, y: 0, duration: 0.7 }, '-=0.3')
+    .to('#hero-sub',    { opacity: 1, y: 0, duration: 0.6 }, '-=0.4')
+    .to('#hero-cta',    { opacity: 1, y: 0, duration: 0.6 }, '-=0.4')
+    .to('#hero-trust',  { opacity: 1, y: 0, duration: 0.5 }, '-=0.3');
+
+  // Set initial states
+  gsap.set(['#hero-badge','#hero-h1','#hero-sub','#hero-cta','#hero-trust'], { y: 20 });
+} else {
+  // Skip animation for reduced-motion users — just show everything
+  ['#hero-badge','#hero-h1','#hero-sub','#hero-cta','#hero-trust'].forEach(sel => {
+    document.querySelector(sel)?.style.setProperty('opacity', '1');
+  });
+}
+
+// ── AOS init ─────────────────────────────────────────────────────────────
+AOS.init({
+  duration: 600,
+  easing: 'ease-out-cubic',
+  once: true,
+  offset: 60,
+  disable: prefersReduced ? true : false,
+});
+
+// ── Stat counter animation ────────────────────────────────────────────────
+document.querySelectorAll('[data-target]').forEach(el => {
+  const target = parseFloat(el.dataset.target);
+  ScrollTrigger.create({
+    trigger: el,
+    start: 'top 80%',
+    onEnter: () => {
+      if (prefersReduced) { el.textContent = target; return; }
+      gsap.to({ val: 0 }, {
+        val: target,
+        duration: 1.5,
+        ease: 'power2.out',
+        onUpdate: function() { el.textContent = Math.round(this.targets()[0].val); }
+      });
+    }
+  });
+});
+
+// Re-init Lucide after dynamic content
+lucide.createIcons();
+</script>
+{% endblock %}

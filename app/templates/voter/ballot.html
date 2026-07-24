@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+{% block title %}Ballot — {{ election.title }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 pt-20 pb-16">
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Header -->
+    <div class="mb-8 animate-slide-up">
+      <div class="flex items-center gap-2 text-sm text-gray-500 mb-4">
+        <a href="{{ url_for('voter.dashboard') }}" class="hover:text-brand-600 transition-colors">Dashboard</a>
+        <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+        <span>Ballot</span>
+      </div>
+      <h1 class="font-display font-bold text-2xl text-gray-900">{{ election.title }}</h1>
+      <div class="flex items-center gap-2 mt-3 p-3 bg-brand-50 rounded-xl border border-brand-100">
+        <i data-lucide="lock" class="w-4 h-4 text-brand-600 flex-shrink-0"></i>
+        <p class="text-xs text-brand-700">Your selections will be encrypted with RSA-2048 OAEP before submission. The server never sees your plaintext choices.</p>
+      </div>
+    </div>
+
+    <!-- Ballot form -->
+    <div id="ballot-app"
+         x-data="ballotApp({{ election.election_id }}, {{ election.positions | length }})"
+         class="space-y-6">
+
+      <!-- Positions -->
+      {% for position in election.positions %}
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-slide-up"
+           style="animation-delay: {{ loop.index0 * 60 }}ms">
+        <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+          <div>
+            <span class="text-xs font-semibold text-gray-400">Position {{ loop.index }} of {{ election.positions | length }}</span>
+            <h2 class="font-display font-bold text-lg text-gray-900">{{ position.title }}</h2>
+          </div>
+          <div x-show="selections['{{ position.position_id }}']"
+               class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-100 text-accent-700 text-xs font-semibold">
+            <i data-lucide="check" class="w-3 h-3"></i>
+            Selected
+          </div>
+        </div>
+
+        <div class="p-4 grid gap-3">
+          {% for candidate in position.candidates %}
+          <label class="flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all"
+                 :class="selections['{{ position.position_id }}'] == {{ candidate.candidate_id }}
+                   ? 'border-brand-500 bg-brand-50'
+                   : 'border-gray-100 hover:border-brand-200 hover:bg-gray-50'">
+            <input type="radio"
+                   name="pos_{{ position.position_id }}"
+                   value="{{ candidate.candidate_id }}"
+                   x-model="selections['{{ position.position_id }}']"
+                   class="sr-only" />
+
+            <!-- Candidate photo or avatar -->
+            <div class="w-12 h-12 rounded-full flex-shrink-0 overflow-hidden bg-gradient-to-br from-brand-100 to-purple-100 flex items-center justify-center">
+              {% if candidate.photo_url %}
+                <img src="/static/{{ candidate.photo_url }}" alt="{{ candidate.full_name }}" class="w-full h-full object-cover" />
+              {% else %}
+                <i data-lucide="user" class="w-6 h-6 text-brand-400"></i>
+              {% endif %}
+            </div>
+
+            <div class="flex-1 min-w-0">
+              <p class="font-semibold text-gray-900 text-sm">{{ candidate.full_name }}</p>
+              {% if candidate.matric_number %}
+              <p class="text-xs text-gray-400 font-mono">{{ candidate.matric_number }}</p>
+              {% endif %}
+              {% if candidate.manifesto %}
+              <p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ candidate.manifesto }}</p>
+              {% endif %}
+            </div>
+
+            <!-- Selection indicator -->
+            <div class="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all"
+                 :class="selections['{{ position.position_id }}'] == {{ candidate.candidate_id }}
+                   ? 'border-brand-600 bg-brand-600'
+                   : 'border-gray-300'">
+              <i data-lucide="check" class="w-3 h-3 text-white"
+                 x-show="selections['{{ position.position_id }}'] == {{ candidate.candidate_id }}"></i>
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- Submit bar -->
+      <div class="sticky bottom-4 bg-white rounded-2xl border border-gray-200 shadow-lg p-4 flex items-center justify-between gap-4 animate-slide-up">
+        <div class="text-sm text-gray-500">
+          <span class="font-semibold text-gray-900" x-text="Object.keys(selections).length"></span>
+          of {{ election.positions | length }} positions selected
+        </div>
+        <button @click="showConfirm = true"
+                :disabled="Object.keys(selections).length < {{ election.positions | length }} || submitted"
+                class="flex items-center gap-2 px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl transition-all hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100">
+          <i data-lucide="send" class="w-4 h-4"></i>
+          Review &amp; Submit
+        </button>
+      </div>
+
+      <!-- Confirm modal -->
+      <div x-show="showConfirm" x-cloak
+           class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm"
+           x-transition:enter="transition ease-out duration-200"
+           x-transition:enter-start="opacity-0"
+           x-transition:enter-end="opacity-100">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 animate-slide-up">
+          <div class="flex items-start gap-4 mb-6">
+            <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <i data-lucide="alert-circle" class="w-5 h-5 text-amber-600"></i>
+            </div>
+            <div>
+              <h2 class="font-display font-bold text-lg text-gray-900">Review your selections</h2>
+              <p class="text-sm text-gray-500 mt-1">Once submitted, your vote cannot be changed. Please confirm your choices below.</p>
+            </div>
+          </div>
+
+          <!-- Summary -->
+          <div class="space-y-2 mb-6">
+            {% for position in election.positions %}
+            <div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+              <span class="text-xs font-medium text-gray-500">{{ position.title }}</span>
+              <template x-for="c in [getCandidateName('{{ position.position_id }}')]" :key="c">
+                <span class="text-sm font-semibold text-gray-900" x-text="c || '—'"></span>
+              </template>
+            </div>
+            {% endfor %}
+          </div>
+
+          <div class="flex gap-3">
+            <button @click="showConfirm = false"
+              class="flex-1 py-3 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all">
+              Go back
+            </button>
+            <button @click="submitVote()"
+                    :disabled="submitted"
+                    class="flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-xl transition-all disabled:opacity-60">
+              <i data-lucide="shield-check" class="w-4 h-4"></i>
+              <span x-text="submitted ? 'Submitting…' : 'Submit My Vote'"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Success screen -->
+      <div x-show="receiptData" x-cloak
+           class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center animate-slide-up">
+          <div class="w-16 h-16 rounded-full bg-accent-100 flex items-center justify-center mx-auto mb-5">
+            <i data-lucide="check-circle-2" class="w-8 h-8 text-accent-600"></i>
+          </div>
+          <h2 class="font-display font-bold text-2xl text-gray-900 mb-2">Vote Cast!</h2>
+          <p class="text-gray-500 text-sm mb-6">Your encrypted ballot has been recorded. Keep your receipt for verification.</p>
+
+          <div class="bg-gray-50 rounded-xl p-4 text-left space-y-2 mb-6 text-xs font-mono">
+            <div class="flex gap-2"><span class="text-gray-400 w-20 shrink-0">Receipt ID</span><span class="text-gray-900 break-all" x-text="receiptData?.receipt_id"></span></div>
+            <div class="flex gap-2"><span class="text-gray-400 w-20 shrink-0">Timestamp</span><span class="text-gray-900" x-text="receiptData?.submitted_at"></span></div>
+            <div class="flex gap-2"><span class="text-gray-400 w-20 shrink-0">Hash</span><span class="text-gray-900 break-all" x-text="receiptData?.ballot_hash"></span></div>
+          </div>
+
+          <a :href="`/voter/receipt/${receiptData?.receipt_id}`"
+             class="flex items-center justify-center gap-2 py-3 px-6 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl w-full mb-3 transition-all">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            View & Download Receipt
+          </a>
+          <a href="{{ url_for('voter.dashboard') }}"
+             class="block text-sm text-gray-500 hover:text-gray-700 transition-colors">Back to dashboard</a>
+        </div>
+      </div>
+
+    </div><!-- /ballot-app -->
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function ballotApp(electionId, totalPositions) {
+  return {
+    electionId,
+    totalPositions,
+    selections: {},
+    showConfirm: false,
+    submitted: false,
+    receiptData: null,
+
+    // Build candidate name lookup from template data
+    candidateMap: {
+      {% for position in election.positions %}
+        {% for candidate in position.candidates %}
+          '{{ position.position_id }}:{{ candidate.candidate_id }}': '{{ candidate.full_name }}',
+        {% endfor %}
+      {% endfor %}
+    },
+
+    getCandidateName(positionId) {
+      const candId = this.selections[positionId];
+      return candId ? this.candidateMap[`${positionId}:${candId}`] || '—' : '—';
+    },
+
+    async submitVote() {
+      if (this.submitted) return;
+      this.submitted = true;
+      try {
+        const resp = await fetch(`/voter/ballot/${this.electionId}/submit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrf_token]')?.value || '',
+          },
+          body: JSON.stringify(this.selections),
+        });
+        const data = await resp.json();
+        if (resp.ok && data.success) {
+          this.showConfirm = false;
+          this.receiptData = data;
+        } else {
+          alert(data.error || 'Submission failed. Please try again.');
+          this.submitted = false;
+        }
+      } catch (e) {
+        alert('Network error. Please check your connection and try again.');
+        this.submitted = false;
+      }
+    },
+  };
+}
+</script>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Download Private Key — {{ app_name }}{% endblock %}
+{% block admin_content %}
+
+<div class="max-w-2xl animate-slide-up">
+  <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+    <i data-lucide="alert-triangle" class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"></i>
+    <div>
+      <p class="font-semibold text-red-800 text-sm">Download this key immediately.</p>
+      <p class="text-red-700 text-sm mt-0.5">
+        The private key is shown <strong>once only</strong>. It is NOT stored in the database.
+        You need it to tally votes after the election closes. Store it securely offline.
+      </p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 mb-6">
+    <h1 class="font-display font-bold text-xl text-gray-900 mb-1">Election Private Key</h1>
+    <p class="text-sm text-gray-500 mb-6">Election: <strong>{{ election.title }}</strong></p>
+
+    <div class="bg-gray-950 rounded-xl p-5 mb-4 overflow-auto max-h-64">
+      <pre id="pem-text" class="text-green-400 text-xs font-mono whitespace-pre-wrap leading-relaxed">{{ private_pem }}</pre>
+    </div>
+
+    <div class="flex gap-3">
+      <button onclick="copyKey()"
+        class="flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all">
+        <i data-lucide="copy" class="w-4 h-4"></i>
+        Copy to Clipboard
+      </button>
+      <button onclick="downloadKey()"
+        class="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-xl transition-all shadow-sm">
+        <i data-lucide="download" class="w-4 h-4"></i>
+        Download .pem File
+      </button>
+    </div>
+  </div>
+
+  <a href="{{ url_for('admin.election_detail', election_id=election.election_id) }}"
+     class="flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors">
+    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+    Continue to election setup
+  </a>
+</div>
+
+<script>
+const pem = document.getElementById('pem-text').textContent;
+
+function copyKey() {
+  navigator.clipboard.writeText(pem).then(() => alert('Private key copied to clipboard.'));
+}
+
+function downloadKey() {
+  const blob = new Blob([pem], { type: 'application/x-pem-file' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'election_{{ election.election_id }}_private.pem';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+{% endblock %}

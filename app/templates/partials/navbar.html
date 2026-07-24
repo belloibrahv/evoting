@@ -1,0 +1,124 @@
+<!-- Sticky glass navbar with mobile hamburger -->
+<nav
+  x-data="{ open: false, scrolled: false }"
+  @scroll.window="scrolled = window.scrollY > 20"
+  :class="scrolled ? 'glass shadow-sm' : 'bg-transparent'"
+  class="fixed top-0 inset-x-0 z-40 transition-all duration-300"
+  aria-label="Main navigation"
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+
+      <!-- Logo -->
+      <a href="{{ url_for('public.index') }}" class="flex items-center gap-2.5 group">
+        <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center shadow-sm group-hover:bg-brand-700 transition-colors">
+          <i data-lucide="shield-check" class="w-4 h-4 text-white"></i>
+        </div>
+        <span class="font-display font-bold text-gray-900 text-lg tracking-tight">
+          TASFUED <span class="text-brand-600">EVS</span>
+        </span>
+      </a>
+
+      <!-- Desktop links -->
+      <div class="hidden md:flex items-center gap-1">
+        <a href="{{ url_for('public.index') }}#how-it-works"
+           class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
+          How It Works
+        </a>
+        <a href="{{ url_for('public.index') }}#security"
+           class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
+          Security
+        </a>
+        <a href="{{ url_for('results.index') }}"
+           class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
+          Results
+        </a>
+        <a href="{{ url_for('public.index') }}#team"
+           class="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
+          Team
+        </a>
+      </div>
+
+      <!-- Desktop CTA buttons -->
+      <div class="hidden md:flex items-center gap-3">
+        {% if current_user.is_authenticated %}
+          {% if current_user.is_admin %}
+            <a href="{{ url_for('admin.dashboard') }}"
+               class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors shadow-sm">
+              <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+              Admin Console
+            </a>
+          {% else %}
+            <a href="{{ url_for('voter.dashboard') }}"
+               class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors shadow-sm">
+              <i data-lucide="vote" class="w-4 h-4"></i>
+              My Ballot
+            </a>
+          {% endif %}
+          <form action="{{ url_for('auth.logout') }}" method="post" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <button type="submit"
+              class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
+              Log Out
+            </button>
+          </form>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}"
+             class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
+            Voter Login
+          </a>
+          <a href="{{ url_for('auth.login') }}?admin=1"
+             class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors shadow-sm">
+            <i data-lucide="lock" class="w-4 h-4"></i>
+            Admin Login
+          </a>
+        {% endif %}
+      </div>
+
+      <!-- Mobile hamburger -->
+      <button @click="open = !open"
+        class="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
+        :aria-expanded="open" aria-label="Toggle navigation">
+        <i x-show="!open" data-lucide="menu" class="w-5 h-5"></i>
+        <i x-show="open" data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile menu -->
+  <div x-show="open"
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0 -translate-y-2"
+    x-transition:enter-end="opacity-100 translate-y-0"
+    x-transition:leave="transition ease-in duration-150"
+    x-transition:leave-end="opacity-0"
+    class="md:hidden glass border-t border-gray-200/60">
+    <div class="px-4 py-4 space-y-1">
+      <a href="{{ url_for('public.index') }}#how-it-works" @click="open=false"
+         class="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg">How It Works</a>
+      <a href="{{ url_for('public.index') }}#security" @click="open=false"
+         class="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg">Security</a>
+      <a href="{{ url_for('results.index') }}" @click="open=false"
+         class="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg">Results</a>
+      <a href="{{ url_for('public.index') }}#team" @click="open=false"
+         class="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg">Team</a>
+      <div class="pt-2 border-t border-gray-100 flex flex-col gap-2">
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('voter.dashboard') if current_user.is_voter else url_for('admin.dashboard') }}"
+             class="block text-center px-4 py-2.5 text-sm font-semibold text-white bg-brand-600 rounded-lg">
+            Dashboard
+          </a>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}"
+             class="block text-center px-4 py-2.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg">
+            Voter Login
+          </a>
+          <a href="{{ url_for('auth.login') }}?admin=1"
+             class="block text-center px-4 py-2.5 text-sm font-semibold text-white bg-brand-600 rounded-lg">
+            Admin Login
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</nav>

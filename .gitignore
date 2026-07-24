@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Flask
+instance/
+*.db
+*.sqlite3
+
+# Keys — NEVER commit private keys
+keys/*.pem
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Uploads
+app/static/uploads/
+
+# Logs
+logs/
+*.log
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Node (Tailwind CLI build)
+node_modules/
+package-lock.json
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Docker volumes (local mounts)
+pgdata/

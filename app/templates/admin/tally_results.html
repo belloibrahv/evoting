@@ -1,0 +1,70 @@
+{% extends 'admin/base_admin.html' %}
+{% block title %}Tally Results — {{ app_name }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block admin_content %}
+<div class="animate-slide-up">
+  <h1 class="font-display font-bold text-2xl text-gray-900 mb-2">Tally Results</h1>
+  <p class="text-gray-500 text-sm mb-6">{{ election.title }}</p>
+
+  <!-- Summary -->
+  {% set summary = results.get('_summary', {}) %}
+  <div class="grid sm:grid-cols-4 gap-4 mb-8">
+    {% for label, value, color in [
+      ("Total Ballots", summary.get('total_ballots', 0), "brand"),
+      ("Valid Ballots", summary.get('valid_ballots', 0), "accent"),
+      ("Invalid (hash mismatch)", summary.get('invalid_ballots', 0), "red"),
+      ("Turnout", summary.get('turnout_pct', 0)|string ~ "%", "purple")
+    ] %}
+    <div class="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm text-center">
+      <p class="text-xs text-gray-500 mb-1">{{ label }}</p>
+      <p class="font-display font-bold text-2xl text-{{ color }}-600">{{ value }}</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Per-position results -->
+  {% for pos_id, pos_data in results.items() %}
+    {% if pos_id != '_summary' %}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-4">
+      <h2 class="font-display font-bold text-lg text-gray-900 mb-4">{{ pos_data.title }}</h2>
+      <div class="space-y-3">
+        {% for cand_id, cand_data in pos_data.candidates.items() %}
+        {% set pct = (cand_data.votes / pos_data.total_votes * 100) if pos_data.total_votes > 0 else 0 %}
+        <div class="flex items-center gap-4">
+          <div class="w-32 text-sm font-medium text-gray-900 truncate">{{ cand_data.name }}</div>
+          <div class="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-brand-500 to-accent-500 rounded-full transition-all" style="width: {{ pct }}%"></div>
+          </div>
+          <div class="w-16 text-right text-sm font-semibold text-gray-700">{{ cand_data.votes }}</div>
+          <div class="w-14 text-right text-xs text-gray-400">{{ "%.1f"|format(pct) }}%</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  {% endfor %}
+
+  <!-- Publish -->
+  {% if election.status == 'tallied' %}
+  <div class="mt-6 p-6 bg-gradient-to-r from-brand-50 to-accent-50 border border-brand-200 rounded-2xl flex items-center justify-between gap-4 flex-wrap">
+    <div>
+      <h3 class="font-semibold text-gray-900 mb-1">Ready to publish?</h3>
+      <p class="text-sm text-gray-600">Once published, results will be visible on the public Results page.</p>
+    </div>
+    <form method="post" action="{{ url_for('admin.publish_results', election_id=election.election_id) }}"
+          onsubmit="return confirm('Publish results publicly?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button type="submit"
+        class="flex items-center gap-2 px-6 py-3 bg-accent-600 hover:bg-accent-700 text-white font-semibold rounded-xl transition-all shadow-sm">
+        <i data-lucide="globe" class="w-4 h-4"></i>
+        Publish Results
+      </button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
